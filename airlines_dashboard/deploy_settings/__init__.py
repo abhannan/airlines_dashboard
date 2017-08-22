@@ -1,4 +1,4 @@
-from airlines_dashboard import *
+from airlines_dashboard.settings import *
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 

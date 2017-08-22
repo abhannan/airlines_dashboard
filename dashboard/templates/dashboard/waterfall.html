@@ -1,0 +1,694 @@
+{% load i18n %} 
+
+{% block content %}
+<html>
+<head>
+
+</head>
+<body>
+    <header>
+    </header>
+        <div class="card-container">
+            <div class="card" id="total-rev-card">
+              <div class="card-body">
+                <h4 class="card-title">Total Revenue</h4>
+                  <hr/>
+                <p class="card-text" id="total-rev"></p>
+              </div>
+            </div>
+            <div class="card" id="total-costs-card">
+              <div class="card-body">
+                <h4 class="card-title">Total Costs</h4>
+                  <hr/>
+                <p class="card-text" id="total-costs"></p>
+              </div>
+            </div>
+            <div class="card" id="capacity-card">
+              <div class="card-body">
+                <h4 class="card-title">Capacity</h4>
+                  <hr/>
+                <p class="card-text" id="total-capacity"></p>
+              </div>
+            </div>
+            <div class="card" id="traffic-card">
+              <div class="card-body">
+                <h4 class="card-title">Traffic</h4>
+                  <hr/>
+                <p class="card-text" id="total-traffic"></p>
+              </div>
+            </div>
+            <div class="card" id="load-factor-card">
+              <div class="card-body">
+                <h4 class="card-title">Load Factor</h4>
+                  <hr/>
+                <p class="card-text" id="load-factor"></p>
+              </div>
+            </div>
+            <div class="card" id="yield-card">
+              <div class="card-body">
+                <h4 class="card-title">Yield (cents)</h4>
+                  <hr/>
+                <p class="card-text" id="revenue-yield"></p>
+              </div>
+            </div>
+            <div class="card" id="fuel-card">
+              <div class="card-body">
+                <h4 class="card-title">Fuel Gallons</h4>
+                  <hr/>
+                <p class="card-text" id="total-fuel"></p>
+              </div>
+            </div>
+        </div>
+        <div id="waterfall-wrapper">
+            <div class="panel-header">
+                <div class="panel-title">Financial Performance</div>
+            </div>
+            <svg class="chart"></svg>
+        </div>
+
+        <div id="waterfall-wrapper">
+            <div class="panel-header">
+                <div class="panel-title">Unit Analysis</div>
+            </div>
+            <svg class="rasmCasm-chart" height=300 width=600></svg>
+        </div>
+    <style>
+    
+    </style>
+    <script>
+// Default at first rendering
+        $(document).ready(function() {   
+                var defaultYear = $('#year-selected').val( 5 );         
+        
+// Ajax request to fetch Financial Data
+           
+                $.ajax({
+                url: "{% url 'airline_specific_filtered_financial' %}",
+                method: 'GET',
+                data : {
+                    airline_category: 1,
+                        },
+                success: function(dataset_financial){
+
+// Changing the Keys of data to human readbale formale
+
+    var readable_keys = ['Mainline Revenue', 'Regional Revenue', 'Other Revenue',
+            'Salaries & Wages', 'Aircraft Fuel', 'Depreciation', 'Interest Expense',
+            'Other Expense', 'Non Operating'];
+
+
+    var yearlyFilteredData = dataset_financial.filter(function(obj){
+        return obj.financial_year === "2016";
+    });
+
+    delete yearlyFilteredData[0].financial_year
+
+    var filteredData = {}
+    var keys = Object.keys(yearlyFilteredData[0]); // makes a new array of keys
+     
+
+    for (var i in readable_keys) {
+        filteredData[readable_keys[i]] = yearlyFilteredData[0][keys[i]];
+    }
+
+    var data = [];
+    for (var key in filteredData) {
+      data.push({
+        name: key,
+        value: filteredData[key]
+      })
+    }
+    var margin = {top: 20, right: 30, bottom: 30, left: 40},
+            
+    width = 610 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom,
+    padding = 0.3;
+
+    var x = d3.scaleBand()
+            .domain(data.map(function(d) {
+                return d.name
+                }))
+            .range([0, width])
+            .padding(0.2);
+
+    var y = d3.scaleLinear()
+        .range([height, 0]);
+
+    var xAxis = d3.axisBottom(x);
+
+    var yAxis = d3.axisLeft(y)
+        .tickFormat(function(d) {
+            return dollarFormatter(d);
+        });
+
+    var chart = d3.select(".chart")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        var cumulative = 0;
+        for (var i = 0; i < data.length; i++) {
+            data[i].start = cumulative;
+            cumulative += data[i].value;
+            data[i].end = cumulative;
+
+            data[i].class = (data[i].value >= 0) ? 'positive' : 'negative'
+        }
+        data.push({
+            name: 'Net Profit',
+            end: cumulative,
+            start: 0,
+            class: 'total'
+        });
+
+        x.domain(data.map(function(d) {
+            return d.name;
+        }));
+        y.domain([0, d3.max(data, function(d) {
+            return d.end;
+        })]);
+
+        chart.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+            .selectAll(".tick text")
+            .call(wrap, x.bandwidth());
+
+        chart.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+        var bar = chart.selectAll(".bar")
+            .data(data)
+            .enter().append("g")
+            .attr("class", function(d) {
+                return "bar " + d.class
+            })
+            .attr("transform", function(d) {
+                return "translate(" + x(d.name) + ",0)";
+            });
+
+        bar.append("rect")
+            .attr("class", "rect")
+            .attr("y", function(d) {
+                return y(Math.max(d.start, d.end));
+            })
+            .attr("height", function(d) {
+                return Math.abs(y(d.start) - y(d.end));
+            })
+            .attr("width", x.bandwidth())
+            .attr("rx", 3);
+
+        bar.append("text")
+            .attr("class", "text")
+            .attr("x", x.bandwidth() / 2)
+            .attr("y", function(d) {
+                return y(d.end) + 5;
+            })
+            .attr("dy", function(d) {
+                return ((d.class == 'negative') ? '-' : '') + ".75em"
+            })
+            .text(function(d) {
+                return dollarFormatter(d.end - d.start);
+            });
+
+        bar.filter(function(d) {
+                return d.class != "total"
+            }).append("line")
+            .attr("class", "connector")
+            .attr("x1", x.bandwidth() + 5)
+            .attr("y1", function(d) {
+                return y(d.end)
+            })
+            .attr("x2", x.bandwidth() / (1 - padding) - 5)
+            .attr("y2", function(d) {
+                return y(d.end)
+            })
+            
+            function dollarFormatter(n) {
+                  n = Math.round(n);
+                  var result = n;
+                  if (Math.abs(n) > 1000) {
+                    result = Math.round(n/1000) + 'B';
+                  } else {
+                    result = (n/1000).toFixed(1) + 'B'
+                  }
+                  return '$ ' + result;
+                }
+
+// Copying wrap text method directly from Mike Bostock
+
+            function wrap(text, width) {
+              text.each(function() {
+                var text = d3.select(this),
+                    words = text.text().split(/\s+/).reverse(),
+                    word,
+                    line = [],
+                    lineNumber = 0,
+                    lineHeight = 1.1, // ems
+                    y = text.attr("y"),
+                    dy = parseFloat(text.attr("dy")),
+                    tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+                while (word = words.pop()) {
+                  line.push(word);
+                  tspan.text(line.join(" "));
+                  if (tspan.node().getComputedTextLength() > width) {
+                    line.pop();
+                    tspan.text(line.join(" "));
+                    line = [word];
+                    tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                  }
+                }
+              });
+            }
+                
+                
+// Cards Section //               
+                    
+// Total Revenue 2016 Card//
+        var revenueForTheYear = ((yearlyFilteredData[0].mainline_revenue + yearlyFilteredData[0].regional_revenue 
+                                 + yearlyFilteredData[0].other_revenue)/1000).toFixed(1)     
+        var totalRevenue = $('#total-rev').html("$ "+ revenueForTheYear + " Billion");   
+                
+// Total Costs 2016 Card//
+        var costsForTheYear = -((yearlyFilteredData[0].salaries_wages + yearlyFilteredData[0].aircraft_fuel 
+                                 + yearlyFilteredData[0].depreciation_amortization
+                                 + yearlyFilteredData[0].interest_expense
+                                 + yearlyFilteredData[0].other_expenses)/1000).toFixed(1)    
+        var totalCosts = $('#total-costs').html("$ "+ costsForTheYear + " Billion");                            
+                    
+                    
+// Ajax request to fetch Stats Data
+                $.ajax({
+                url: "{% url 'airline_specific_filtered_stats' %}",
+                method: 'GET',
+                data : {
+                    airline_category: 1,
+                    // year_category: 5
+                        },
+                success: function(dataset_stats){
+    
+    var yearlyFilteredStatsData = dataset_stats.filter(function(obj){
+        return obj.financial_year === "2016";
+    });
+                    
+// Total Capacity 2016 Card//
+        var totalCapacity = yearlyFilteredStatsData[0].avail_seat_miles;
+            $('#total-capacity').html(totalCapacity.toFixed(1) + " Billion");
+
+// Total Traffic 2016 Card//
+        var totalTraffic = yearlyFilteredStatsData[0].rev_pax_miles;
+            $('#total-traffic').html(totalTraffic.toFixed(1) + " Billion");
+                    
+// Load Factor 2016 Card//
+        var loadFactor = $('#load-factor').html(((totalTraffic/totalCapacity)*100).toFixed(1) + "%");
+                
+// Yield 2016 Card//      
+        var yieldTotal = $('#revenue-yield').html(((revenueForTheYear/totalTraffic)*100).toFixed(1) + " cents"); 
+
+// Fuels Gallons 2016 Card//
+        var fuelGallons = yearlyFilteredStatsData[0].fuel_gallons;
+            $('#total-fuel').html(((fuelGallons)/1000).toFixed(1) + " Billion");
+
+// RASM CASM Chart
+
+dataset_financial[4].financial_year = "2016";
+
+var map = new Map(dataset_stats.map(o => [o.financial_year, o]));
+dataset_financial.forEach(o => Object.assign(o, map.get(o.financial_year)));
+
+
+var rasmCasmData = dataset_financial.map(item => {
+    return {
+        Year: item.financial_year,
+        RASM: ((item.mainline_revenue+item.regional_revenue+item.other_revenue)/item.avail_seat_miles).toFixed()/10,
+        CASM: (-(item.salaries_wages+item.aircraft_fuel+item.depreciation_amortization
+                +item.interest_expense+ item.other_expenses+item.non_operating_items)
+               /item.avail_seat_miles).toFixed()/10
+    }
+
+})
+    var unitChart = d3.select(".rasmCasm-chart"),
+        chartMargin = {top: 20, right: 20, bottom: 30, left: 40},
+        chartWidth = 600 - chartMargin.left - chartMargin.right,
+        chartHeight = 300 - chartMargin.top - chartMargin.bottom,
+        g = unitChart.append("g").attr("transform", "translate(" + chartMargin.left + "," + chartMargin.top + ")");
+
+    var x0 = d3.scaleBand()
+        .rangeRound([0, chartWidth])
+        .paddingInner(0.1);
+
+    var x1 = d3.scaleBand()
+                .padding(0.05);
+    
+    var y0 = d3.scaleLinear()
+            .rangeRound([chartHeight, 0]);
+    
+    var z = d3.scaleOrdinal()
+            .range(["#64B0CC", "#E5C072"]);
+
+    var keys = ["RASM", "CASM"];
+
+    x0.domain(rasmCasmData.map(function(d){
+        return d.Year;
+    }));
+
+    x1.domain(keys).rangeRound([0, x0.bandwidth()]);
+
+    y0.domain([0, d3.max(rasmCasmData, function(d){
+            return d3.max(keys, function(key){
+                return d[key];
+            });
+        })])
+
+    g.append("g")
+        .selectAll("g")
+        .data(rasmCasmData)
+        .enter()
+        .append("g")
+            .attr("class", "gRasmCasm")
+            .attr("transform", function(d){
+                return "translate(" + x0(d.Year) + ",0)";
+                })
+        .selectAll("rect")
+        .data(function(d){
+        return keys.map(function(key){
+            return {key: key, value: d[key]};
+            });
+        })
+        .enter()
+        .append("rect")
+            .attr("class", "barRasmCasm")
+            .attr("x", function(d){
+            return x1(d.key);
+            })
+            .attr("y", function(d){
+            return y0(d.value);
+            })
+            .attr("width", x1.bandwidth())
+            .attr("height", function(d) { return chartHeight - y0(d.value); })
+            .attr("fill", function(d) { return z(d.key); });
+            
+    g.append("g")
+      .attr("class", "axis")
+      .attr("transform", "translate(0," + chartHeight + ")")
+      .call(d3.axisBottom(x0));
+
+    g.append("g")
+            .attr("class", "axis")
+            .call(d3.axisLeft(y0).ticks(null, "s"))
+        .append("text")
+            .attr("x", 2)
+            .attr("y", y0(y0.ticks().pop()) + 0.5)
+            .attr("dy", "0.32em")
+            .attr("fill", "#000")
+            .attr("font-weight", "bold")
+            .attr("text-anchor", "start")
+            .text("US cents");
+    var legend = g.append("g")
+          .attr("font-family", "sans-serif")
+          .attr("font-size", 10)
+          .attr("text-anchor", "end")
+        .selectAll("g")
+        .data(keys.slice())
+        .enter().append("g")
+          .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+  
+    legend.append("rect")
+      .attr("x", chartWidth - 19)
+      .attr("width", 19)
+      .attr("height", 19)
+      .attr("fill", z);
+
+    legend.append("text")
+      .attr("x", chartWidth - 24)
+      .attr("y", 9.5)
+      .attr("dy", "0.32em")
+      .text(function(d) { return d; });
+
+
+                },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+            })                             
+  // Completes Ajax Request for Stats          
+
+                },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+            })
+        });
+        
+// Select and filter new information
+        
+        d3.selectAll("#airline-selected, #year-selected")
+            .on("change", function(){
+            var airlineSelected = $('#airline-selected').find(":selected").val();
+            var yearSelected = $('#year-selected').find(":selected").val();
+            
+// Ajax request to fetch Financial Data
+          
+            $.ajax({
+                url: "{% url 'airline_specific_filtered_financial' %}",
+                method: 'GET',
+                data : {
+                    airline_category: airlineSelected,
+                        },
+                success: function(dataset_financial){                    
+                    
+        var yearlyFilteredData = dataset_financial.filter(function(obj){
+            return obj.financial_year === "2016";
+            });
+        delete yearlyFilteredData[0].financial_year
+
+            var data = [];
+
+            for (var key in yearlyFilteredData[0]) {
+              data.push({
+                name: key,
+                value: yearlyFilteredData[0][key]
+              })
+            }
+      
+        var margin = {top: 20, right: 30, bottom: 30, left: 40},
+                
+        width = 700 - margin.left - margin.right,
+        height = 300 - margin.top - margin.bottom,
+        padding = 0.3;
+
+    var y = d3.scaleLinear()
+        .range([height, 0]);
+
+    var chart = d3.select(".chart")
+
+    var cumulative = 0;
+    for (var i = 0; i < data.length; i++) {
+        data[i].start = cumulative;
+        cumulative += data[i].value;
+        data[i].end = cumulative;
+
+        data[i].class = (data[i].value >= 0) ? 'positive' : 'negative'
+    }
+    data.push({
+        name: 'Total',
+        end: cumulative,
+        start: 0,
+        class: 'total'
+    });
+
+    y.domain([0, 40000]);
+
+    chart.selectAll(".bar")
+        .data(data)
+        .attr("class", function(d) {
+            return "bar " + d.class
+        });
+
+    var bar = chart.selectAll("rect")
+        .data(data)
+        .transition()
+        .duration(500)
+        
+    bar.attr("y", function(d) {
+            return y(Math.max(d.start, d.end));
+        })
+        .attr("height", function(d) {
+            return Math.abs(y(d.start) - y(d.end));
+        })
+
+    var text = chart.selectAll(".text")
+            .data(data)
+            .transition()
+            .duration(500)
+            .attr("y", function(d) {
+            if (d.end >= 0) {
+                return y(d.end) + 5;
+            } else {
+                return y(d.end);
+            }
+              })
+            .attr("dy", function(d) {
+                return ((d.class == 'negative') ? '-' : '') + ".75em"
+            })
+            .text(function(d) {
+                return dollarFormatter(d.end - d.start);
+            });  
+
+        var line = chart.selectAll(".connector")
+            .data(data)
+            .transition()
+            .duration(500)
+            .attr("y1", function(d) {
+                return y(d.end)
+            })
+            .attr("y2", function(d) {
+                return y(d.end)
+            }) 
+
+        function dollarFormatter(n) {
+              n = Math.round(n);
+              var result = n;
+              if (Math.abs(n) > 1000) {
+                result = Math.round(n/1000) + 'B';
+              } else {
+                result = (n/1000).toFixed(1) + 'B'
+              }
+              return '$ ' + result;
+            }
+
+// Cards Section //               
+                    
+// Total Revenue 2016 Card//
+        var revenueForTheYear = ((yearlyFilteredData[0].mainline_revenue + yearlyFilteredData[0].regional_revenue 
+                                 + yearlyFilteredData[0].other_revenue)/1000).toFixed(1)     
+        var totalRevenue = $('#total-rev').html("$ "+ revenueForTheYear + " Billion");   
+                
+// Total Costs 2016 Card//
+        var costsForTheYear = -((yearlyFilteredData[0].salaries_wages + yearlyFilteredData[0].aircraft_fuel 
+                                 + yearlyFilteredData[0].depreciation_amortization
+                                 + yearlyFilteredData[0].interest_expense
+                                 + yearlyFilteredData[0].other_expenses)/1000).toFixed(1)    
+        var totalCosts = $('#total-costs').html("$ "+ costsForTheYear + " Billion"); 
+                
+
+// Ajax request to fetch Stats Data
+           
+            $.ajax({
+                url: "{% url 'airline_specific_filtered_stats' %}",
+                method: 'GET',
+                data : {
+                    airline_category: airlineSelected,
+                        },
+                success: function(dataset_stats){
+                var yearlyFilteredStatsData = dataset_stats.filter(function(obj){
+                    return obj.financial_year === "2016";
+                    });
+                                        
+// Total Capacity 2016 Card//
+        var totalCapacity = yearlyFilteredStatsData[0].avail_seat_miles;
+            $('#total-capacity').html(totalCapacity.toFixed(1) + " Billion");
+
+// Total Traffic 2016 Card//
+        var totalTraffic = yearlyFilteredStatsData[0].rev_pax_miles;
+            $('#total-traffic').html(totalTraffic.toFixed(1) + " Billion");
+                    
+// Load Factor 2016 Card//
+        var loadFactor = $('#load-factor').html(((totalTraffic/totalCapacity)*100).toFixed(1) + "%");
+                
+// Yield 2016 Card//      
+        var yieldTotal = $('#revenue-yield').html(((revenueForTheYear/totalTraffic)*100).toFixed(1) + " cents"); 
+
+// Fuels Gallons 2016 Card//
+        var fuelGallons = yearlyFilteredStatsData[0].fuel_gallons;
+            $('#total-fuel').html(((fuelGallons)/1000).toFixed(1) + " Billion");
+                    
+                    
+                    
+ // RASM CASM Chart
+
+dataset_financial[4].financial_year = "2016";
+
+var map = new Map(dataset_stats.map(o => [o.financial_year, o]));
+dataset_financial.forEach(o => Object.assign(o, map.get(o.financial_year)));
+
+
+    var rasmCasmData = dataset_financial.map(item => {
+    return {
+        Year: item.financial_year,
+        RASM: ((item.mainline_revenue+item.regional_revenue+item.other_revenue)/item.avail_seat_miles).toFixed()/10,
+        CASM: (-(item.salaries_wages+item.aircraft_fuel+item.depreciation_amortization
+                +item.interest_expense+ item.other_expenses+item.non_operating_items)
+               /item.avail_seat_miles).toFixed()/10
+    }
+
+    })  
+
+    var unitChart = d3.select(".rasmCasm-chart"),
+        chartMargin = {top: 20, right: 20, bottom: 30, left: 40},
+        chartWidth = 600 - chartMargin.left - chartMargin.right,
+        chartHeight = 300 - chartMargin.top - chartMargin.bottom;
+        g = unitChart.append("g").attr("transform", "translate(" + chartMargin.left + "," + chartMargin.top + ")");
+
+    var x0 = d3.scaleBand()
+        .rangeRound([0, chartWidth])
+        .paddingInner(0.1);
+
+    var x1 = d3.scaleBand()
+                .padding(0.05);
+    
+    var y0 = d3.scaleLinear()
+            .range([chartHeight, 0]);
+    
+    var z = d3.scaleOrdinal()
+            .range(["#98abc5", "#8a89a6"]);
+                    
+    var keys = ["RASM", "CASM"];
+                    
+    x0.domain(rasmCasmData.map(function(d){
+        return d.Year;
+    }));
+
+    x1.domain(keys).rangeRound([0, x0.bandwidth()]);
+
+    y0.domain([0, 28])
+    
+    unitChart.selectAll(".gRasmCasm")
+            .data(rasmCasmData)
+            .selectAll(".barRasmCasm")
+                .data(function(d){
+                return keys.map(function(key){
+                    return {key: key, value: d[key]};
+                    });
+                })
+                .transition()
+                .duration(500)
+                .attr("y", function(d){
+                    return y0(d.value);
+                    })
+                .attr("height", function(d) { return chartHeight - y0(d.value); })              
+           
+         },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+            })
+
+         },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+            })
+            })
+           </script>
+  
+</body>
+</html>
+
+{% endblock content %}

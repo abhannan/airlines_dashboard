@@ -1,0 +1,35 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %} 
+{% block title %} Homepage - {{ block.super }} {% endblock title %} 
+
+
+{% block content %}
+<html>
+<head>
+
+</head>
+<body>
+    <header>
+        <h1 style="text-align: center">Airlines Dashboard</h1>
+
+        <nav class="navbar navbar-dark bg-dark">
+            <div>
+            <h2>Select: &nbsp;</h2>
+            <select id="airline-selected" class="custom-select">
+                {% for airline in airline_list %}
+                    <option value="{{ airline.id }}">
+                        {{ airline.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            </div>
+            <h2 class="yearTag">2016</h2>
+        </nav>
+    </header>
+    
+      {% include 'dashboard/waterfall.html' %}
+    
+</body>
+</html>
+
+{% endblock content %}

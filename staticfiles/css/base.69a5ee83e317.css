@@ -1,0 +1,41 @@
+body {
+    background-color: #ECF0F1;
+    font-family: "Montserrat", "Roboto", Helvetica, sans-serif;
+    padding-top: 70px;
+    padding-bottom: 70px;
+}
+
+.bar.total rect {
+        fill: #FF974F;
+    }
+    
+    .bar.positive rect {
+        fill: #04756F;
+    }
+    
+    .bar.negative rect {
+        fill: #CC445B;
+    }
+    
+    .bar line.connector {
+        stroke: black;
+        stroke-dasharray: 2;
+    }
+    
+    .bar text {
+        fill: black;
+        font: 11px sans-serif;
+        text-anchor: middle;
+        opacity: 0.8;
+    }
+    
+    .axis text {
+        font: 10px sans-serif;
+    }
+    
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }

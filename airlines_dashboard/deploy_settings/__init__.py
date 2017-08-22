@@ -1,4 +1,6 @@
+import dj_database_url 
 from airlines_dashboard.settings import *
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 

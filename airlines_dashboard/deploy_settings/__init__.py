@@ -1,5 +1,5 @@
 from airlines_dashboard.settings import *
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ALLOWED_HOSTS = [
@@ -8,3 +8,6 @@ ALLOWED_HOSTS = [
 ]
 
 SECRET_KEY = get_env_variable("SECRET_KEY")
+
+db_from_env = dj_database_url.config()
+DATABASES['default'].update(db_from_env)

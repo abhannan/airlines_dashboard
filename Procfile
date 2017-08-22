@@ -1,1 +1,1 @@
-web: gunicorn --pythonpath airlines_dashboard airlines_dashboard.wsgi --log-file -
+web: gunicorn --pythonpath airlines_dashboard airlines_dashboard.deploy --log-file -

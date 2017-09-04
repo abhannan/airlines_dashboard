@@ -1,0 +1,1271 @@
+{% load i18n %} 
+
+{% block content %}
+<html>
+<head>
+
+</head>
+<body>
+
+<script>
+
+$( "#total-rev-card, #total-costs-card, #capacity-card, #traffic-card, #load-factor-card, #yield-card, #fuel-card" ).click(function () {
+  var airlineSelected = $('#airline-selected').find(":selected").val();
+  var selectedCardId = $(this).attr('id')
+
+  if (airlineSelected == 1) {
+
+              $.ajax({
+                url: "{% url 'airline_specific_filtered_financial' %}",
+                method: 'GET',
+                data : {
+                    airline_category: 1,
+                        },
+                success: function(dataset_financial){
+
+                if (selectedCardId == 'total-rev-card') {
+
+                  d3.select(".bubble-chart").selectAll("rect").remove();
+                  d3.select(".bubble-chart").selectAll("text").remove();
+                  d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+                  d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+                  var revCardSvg = d3.select(".bubble-chart"),
+                      margin = {top: 20, right: 20, bottom: 30, left: 40},
+                      width = +revCardSvg.attr("width") - margin.left - margin.right,
+                      height = +revCardSvg.attr("height") - margin.top - margin.bottom;
+
+                  var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                      y = d3.scaleLinear().rangeRound([height, 0]);
+
+                  x.domain(dataset_financial.map(function(d) {return d.financial_year;}));
+                  y.domain([0, d3.max(dataset_financial, function(d) { return (d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); })]);
+
+                  var g = revCardSvg.append("g")
+                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                  g.selectAll(".bar")
+                  .data(dataset_financial)
+                  .enter().append("rect")
+                    .attr("class", "barRevenue")
+                    .attr("x", function(d) { return x(d.financial_year); })
+                    .attr("y", function(d) { return y(d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); })
+                    .attr("width", x.bandwidth())
+                    .attr("height", function(d) { return height - y(d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); });
+
+                  g.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                  g.selectAll(".text")
+                    .data(dataset_financial)
+                    .enter()
+                    .append("text")
+                      .attr("class","label")
+                      .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+                      .attr("y", function(d) { return y(d.mainline_revenue+d.regional_revenue+
+                              d.other_revenue) + 5; })
+                      .attr("dy", ".75em")
+                    .text(function(d) { return "$ " + ((d.mainline_revenue+d.regional_revenue+
+                                        d.other_revenue)/1000).toFixed() + " B"; })
+                        .attr("font-family", "sans-serif")
+                        .attr("font-size", "0.8em")
+                        .attr("fill", "white");
+                 }
+               else if (selectedCardId == 'total-costs-card') {
+                d3.select(".bubble-chart").selectAll("rect").remove();
+                d3.select(".bubble-chart").selectAll("text").remove();
+                d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+                d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+                var costsCardSvg = d3.select(".bubble-chart"),
+                    margin = {top: 20, right: 20, bottom: 30, left: 40},
+                    width = +costsCardSvg.attr("width") - margin.left - margin.right,
+                    height = +costsCardSvg.attr("height") - margin.top - margin.bottom;
+
+                var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                    y = d3.scaleLinear().rangeRound([height, 0]);
+
+                x.domain(dataset_financial.map(function(d) {return d.financial_year;}));
+                y.domain([0, d3.max(dataset_financial, function(d) {  return (-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)); })]);
+
+                var g = costsCardSvg.append("g")
+                          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                g.selectAll(".bar")
+                .data(dataset_financial)
+                .enter().append("rect")
+                  .attr("class", "barCosts")
+                  .attr("x", function(d) { return x(d.financial_year); })
+                  .attr("y", function(d) { return y(-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)); })
+                  .attr("width", x.bandwidth())
+                  .attr("height", function(d) { return height - y(-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)); });
+
+                g.append("g")
+                  .attr("class", "axis axis--x")
+                  .attr("transform", "translate(0," + height + ")")
+                  .call(d3.axisBottom(x));
+
+                g.selectAll(".text")
+                  .data(dataset_financial)
+                  .enter()
+                  .append("text")
+                    .attr("class","label")
+                    .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+                    .attr("y", function(d) { return y(-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)) + 5; })
+                    .attr("dy", ".75em")
+                  .text(function(d) { return "$ " + ((-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items))/1000).toFixed() + " B"; })
+                      .attr("font-family", "sans-serif")
+                      .attr("font-size", "0.8em")
+                      .attr("fill", "white");
+               }
+
+            $.ajax({
+              url: "{% url 'airline_specific_filtered_stats' %}",
+              method: 'GET',
+              data : {
+                  airline_category: 1,
+                      },
+              context: $(this),
+              success: function(dataset_stats){
+
+              if (selectedCardId == 'capacity-card') {
+
+                  d3.select(".bubble-chart").selectAll("rect").remove();
+                  d3.select(".bubble-chart").selectAll("text").remove();
+                  d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+                  d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+                  var capacityCardSvg = d3.select(".bubble-chart"),
+                      margin = {top: 20, right: 20, bottom: 30, left: 40},
+                      width = +capacityCardSvg.attr("width") - margin.left - margin.right,
+                      height = +capacityCardSvg.attr("height") - margin.top - margin.bottom,
+                      g = capacityCardSvg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                  var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                      y = d3.scaleLinear().rangeRound([height, 0]);
+
+              var line = d3.line()
+                            .x(function(d) { return x(d.financial_year); })
+                            .y(function(d) { return y(d.avail_seat_miles); });
+
+              x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+              y.domain([100, d3.max(dataset_stats, function(d) { return d.avail_seat_miles})]);
+                g.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g.append("g")
+                    .attr("class", "side-lineChart")
+                    .call(d3.axisLeft(y))
+                  .append("text")
+                    .attr("fill", "#000")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "0.71em")
+                    .attr("text-anchor", "end")
+                    .text("Billions");
+
+                g.append("path")
+                  .datum(dataset_stats)
+                  .attr("class", "line-lineChart")
+                  .attr("fill", "none")
+                  .attr("stroke", "#64B0CC")
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1.5)
+                  .attr("d", line);
+              
+             }             
+          else if (selectedCardId == 'traffic-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var trafficCardSvg = d3.select(".bubble-chart"),
+                  margin = {top: 20, right: 20, bottom: 30, left: 40},
+                  width = +trafficCardSvg.attr("width") - margin.left - margin.right,
+                  height = +trafficCardSvg.attr("height") - margin.top - margin.bottom,
+                  g = trafficCardSvg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+              var line = d3.line()
+                            .x(function(d) { return x(d.financial_year); })
+                            .y(function(d) { return y(d.rev_pax_miles); });
+
+              x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+              y.domain([100, d3.max(dataset_stats, function(d) { return d.rev_pax_miles})]);
+                g.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g.append("g")
+                    .attr("class", "side-lineChart")
+                    .call(d3.axisLeft(y))
+                  .append("text")
+                    .attr("fill", "#000")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "0.71em")
+                    .attr("text-anchor", "end")
+                    .text("Billions");
+
+                g.append("path")
+                  .datum(dataset_stats)
+                  .attr("class", "line-lineChart")
+                  .attr("fill", "none")
+                  .attr("stroke", "#E5C072")
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1.5)
+                  .attr("d", line);
+  }
+
+          else if (selectedCardId == 'load-factor-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var loadFactorCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +loadFactorCardSvg.attr("width") - margin.left - margin.right,
+                height = +loadFactorCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+          x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+          y.domain([0, d3.max(dataset_stats, function(d) { return (d.rev_pax_miles/d.avail_seat_miles); })]);
+
+          var g = loadFactorCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(dataset_stats)
+          .enter().append("rect")
+            .attr("class", "barLoadFactor")
+            .attr("x", function(d) { return x(d.financial_year); })
+            .attr("y", function(d) { return y(d.rev_pax_miles/d.avail_seat_miles); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y(d.rev_pax_miles/d.avail_seat_miles); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(dataset_stats)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+              .attr("y", function(d) { return y(d.rev_pax_miles/d.avail_seat_miles) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return ((d.rev_pax_miles/d.avail_seat_miles)*100).toFixed(1) + "%"; })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+  }
+    else if (selectedCardId == 'yield-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var yieldCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +yieldCardSvg.attr("width") - margin.left - margin.right,
+                height = +yieldCardSvg.attr("height") - margin.top - margin.bottom;
+
+          var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+             y = d3.scaleLinear().rangeRound([height, 0]);
+
+          var map = new Map(dataset_stats.map(o => [o.financial_year, o]));
+                    dataset_financial.forEach(o => Object.assign(o, map.get(o.financial_year)));
+
+          var yieldChartData = dataset_financial.map(item => {
+              return {
+                  Year: item.financial_year,
+                  Revenue: item.mainline_revenue+item.regional_revenue+item.other_revenue,
+                  RPM: item.rev_pax_miles
+           }
+           })
+
+          x.domain(yieldChartData.map(function(d) { return d.Year;}));
+          y.domain([0, d3.max(yieldChartData, function(d) { return ((d.Revenue/d.RPM)/10); })]);
+
+          var g = yieldCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(yieldChartData)
+          .enter().append("rect")
+            .attr("class", "barYield")
+            .attr("x", function(d) { return x(d.Year); })
+            .attr("y", function(d) { return y((d.Revenue/d.RPM)/10); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y((d.Revenue/d.RPM)/10); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(yieldChartData)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.Year) + 20; }  ))
+              .attr("y", function(d) { return y((d.Revenue/d.RPM)/10) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return (((d.Revenue/d.RPM)/10)).toFixed(1); })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+
+            yieldCardSvg.append("text")
+                .attr("fill", "#000")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 5)
+                .attr("dy", "0.71em")
+                .attr("text-anchor", "end")
+                .text("Cents");
+    
+  }
+    else if (selectedCardId == 'fuel-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var fuelCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +fuelCardSvg.attr("width") - margin.left - margin.right,
+                height = +fuelCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+          x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+          y.domain([0, d3.max(dataset_stats, function(d) { return d.fuel_gallons; })]);
+
+          var g = fuelCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(dataset_stats)
+          .enter().append("rect")
+            .attr("class", "barFuel")
+            .attr("x", function(d) { return x(d.financial_year); })
+            .attr("y", function(d) { return y(d.fuel_gallons); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y(d.fuel_gallons); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(dataset_stats)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.financial_year) + 20; }  ))
+              .attr("y", function(d) { return y(d.fuel_gallons) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return ((d.fuel_gallons)/1000).toFixed(1); })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+
+            fuelCardSvg.append("text")
+              .attr("fill", "#000")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 5)
+              .attr("dy", "0.71em")
+              .attr("text-anchor", "end")
+              .text("Billions");
+  }
+
+
+ },
+          error: function(error_data){
+          console.log("error")
+          console.log(error_data)
+           }
+
+          }); 
+
+                   },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+
+        });
+
+  } else if (airlineSelected == 2) {
+
+                  $.ajax({
+                url: "{% url 'airline_specific_filtered_financial' %}",
+                method: 'GET',
+                data : {
+                    airline_category: 2,
+                        },
+                success: function(dataset_financial){
+
+                    if (selectedCardId == 'total-rev-card') {
+
+                  d3.select(".bubble-chart").selectAll("rect").remove();
+                  d3.select(".bubble-chart").selectAll("text").remove();
+                  d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+                  d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+                  var revCardSvg = d3.select(".bubble-chart"),
+                      margin = {top: 20, right: 20, bottom: 30, left: 40},
+                      width = +revCardSvg.attr("width") - margin.left - margin.right,
+                      height = +revCardSvg.attr("height") - margin.top - margin.bottom;
+
+                  var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                      y = d3.scaleLinear().rangeRound([height, 0]);
+
+                  x.domain(dataset_financial.map(function(d) {return d.financial_year;}));
+                  y.domain([0, d3.max(dataset_financial, function(d) { return (d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); })]);
+
+                  var g = revCardSvg.append("g")
+                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                  g.selectAll(".bar")
+                  .data(dataset_financial)
+                  .enter().append("rect")
+                    .attr("class", "barRevenue")
+                    .attr("x", function(d) { return x(d.financial_year); })
+                    .attr("y", function(d) { return y(d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); })
+                    .attr("width", x.bandwidth())
+                    .attr("height", function(d) { return height - y(d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); });
+
+                  g.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                  g.selectAll(".text")
+                    .data(dataset_financial)
+                    .enter()
+                    .append("text")
+                      .attr("class","label")
+                      .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+                      .attr("y", function(d) { return y(d.mainline_revenue+d.regional_revenue+
+                              d.other_revenue) + 5; })
+                      .attr("dy", ".75em")
+                    .text(function(d) { return "$ " + ((d.mainline_revenue+d.regional_revenue+
+                                        d.other_revenue)/1000).toFixed() + " B"; })
+                        .attr("font-family", "sans-serif")
+                        .attr("font-size", "0.8em")
+                        .attr("fill", "white");
+                 }
+                    else if (selectedCardId == 'total-costs-card') {
+              d3.select(".bubble-chart").selectAll("rect").remove();
+              d3.select(".bubble-chart").selectAll("text").remove();
+              d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+              d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+              var costsCardSvg = d3.select(".bubble-chart"),
+                  margin = {top: 20, right: 20, bottom: 30, left: 40},
+                  width = +costsCardSvg.attr("width") - margin.left - margin.right,
+                  height = +costsCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+              x.domain(dataset_financial.map(function(d) {return d.financial_year;}));
+              y.domain([0, d3.max(dataset_financial, function(d) {  return (-(d.salaries_wages+d.aircraft_fuel+
+                            d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                            d.non_operating_items)); })]);
+
+              var g = costsCardSvg.append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+              g.selectAll(".bar")
+              .data(dataset_financial)
+              .enter().append("rect")
+                .attr("class", "barCosts")
+                .attr("x", function(d) { return x(d.financial_year); })
+                .attr("y", function(d) { return y(-(d.salaries_wages+d.aircraft_fuel+
+                            d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                            d.non_operating_items)); })
+                .attr("width", x.bandwidth())
+                .attr("height", function(d) { return height - y(-(d.salaries_wages+d.aircraft_fuel+
+                            d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                            d.non_operating_items)); });
+
+              g.append("g")
+                .attr("class", "axis axis--x")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x));
+
+              g.selectAll(".text")
+                .data(dataset_financial)
+                .enter()
+                .append("text")
+                  .attr("class","label")
+                  .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+                  .attr("y", function(d) { return y(-(d.salaries_wages+d.aircraft_fuel+
+                            d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                            d.non_operating_items)) + 5; })
+                  .attr("dy", ".75em")
+                .text(function(d) { return "$ " + ((-(d.salaries_wages+d.aircraft_fuel+
+                            d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                            d.non_operating_items))/1000).toFixed() + " B"; })
+                    .attr("font-family", "sans-serif")
+                    .attr("font-size", "0.8em")
+                    .attr("fill", "white");
+             }
+
+                  $.ajax({
+                    url: "{% url 'airline_specific_filtered_stats' %}",
+                    method: 'GET',
+                    data : {
+                        airline_category: 2,
+                            },
+                    context: $(this),
+                    success: function(dataset_stats){
+
+                    if (selectedCardId == 'capacity-card') {
+
+              d3.select(".bubble-chart").selectAll("rect").remove();
+              d3.select(".bubble-chart").selectAll("text").remove();
+              d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+              d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+              var capacityCardSvg = d3.select(".bubble-chart"),
+                  margin = {top: 20, right: 20, bottom: 30, left: 40},
+                  width = +capacityCardSvg.attr("width") - margin.left - margin.right,
+                  height = +capacityCardSvg.attr("height") - margin.top - margin.bottom,
+                  g = capacityCardSvg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+              var line = d3.line()
+                            .x(function(d) { return x(d.financial_year); })
+                            .y(function(d) { return y(d.avail_seat_miles); });
+
+              x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+              y.domain([100, d3.max(dataset_stats, function(d) { return d.avail_seat_miles})]);
+                g.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g.append("g")
+                    .attr("class", "side-lineChart")
+                    .call(d3.axisLeft(y))
+                  .append("text")
+                    .attr("fill", "#000")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "0.71em")
+                    .attr("text-anchor", "end")
+                    .text("Billions");
+
+                g.append("path")
+                  .datum(dataset_stats)
+                  .attr("class", "line-lineChart")
+                  .attr("fill", "none")
+                  .attr("stroke", "#64B0CC")
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1.5)
+                  .attr("d", line);
+              
+             }             
+          else if (selectedCardId == 'traffic-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var trafficCardSvg = d3.select(".bubble-chart"),
+                  margin = {top: 20, right: 20, bottom: 30, left: 40},
+                  width = +trafficCardSvg.attr("width") - margin.left - margin.right,
+                  height = +trafficCardSvg.attr("height") - margin.top - margin.bottom,
+                  g = trafficCardSvg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+              var line = d3.line()
+                            .x(function(d) { return x(d.financial_year); })
+                            .y(function(d) { return y(d.rev_pax_miles); });
+
+              x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+              y.domain([100, d3.max(dataset_stats, function(d) { return d.rev_pax_miles})]);
+                g.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g.append("g")
+                    .attr("class", "side-lineChart")
+                    .call(d3.axisLeft(y))
+                  .append("text")
+                    .attr("fill", "#000")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "0.71em")
+                    .attr("text-anchor", "end")
+                    .text("Billions");
+
+                g.append("path")
+                  .datum(dataset_stats)
+                  .attr("class", "line-lineChart")
+                  .attr("fill", "none")
+                  .attr("stroke", "#E5C072")
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1.5)
+                  .attr("d", line);
+  }
+
+      else if (selectedCardId == 'load-factor-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var loadFactorCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +loadFactorCardSvg.attr("width") - margin.left - margin.right,
+                height = +loadFactorCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+          x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+          y.domain([0, d3.max(dataset_stats, function(d) { return (d.rev_pax_miles/d.avail_seat_miles); })]);
+
+          var g = loadFactorCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(dataset_stats)
+          .enter().append("rect")
+            .attr("class", "barLoadFactor")
+            .attr("x", function(d) { return x(d.financial_year); })
+            .attr("y", function(d) { return y(d.rev_pax_miles/d.avail_seat_miles); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y(d.rev_pax_miles/d.avail_seat_miles); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(dataset_stats)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+              .attr("y", function(d) { return y(d.rev_pax_miles/d.avail_seat_miles) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return ((d.rev_pax_miles/d.avail_seat_miles)*100).toFixed(1) + "%"; })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+  }
+           else if (selectedCardId == 'yield-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var yieldCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +yieldCardSvg.attr("width") - margin.left - margin.right,
+                height = +yieldCardSvg.attr("height") - margin.top - margin.bottom;
+
+          var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+             y = d3.scaleLinear().rangeRound([height, 0]);
+
+          var map = new Map(dataset_stats.map(o => [o.financial_year, o]));
+                    dataset_financial.forEach(o => Object.assign(o, map.get(o.financial_year)));
+
+          var yieldChartData = dataset_financial.map(item => {
+              return {
+                  Year: item.financial_year,
+                  Revenue: item.mainline_revenue+item.regional_revenue+item.other_revenue,
+                  RPM: item.rev_pax_miles
+           }
+           })
+
+          x.domain(yieldChartData.map(function(d) { return d.Year;}));
+          y.domain([0, d3.max(yieldChartData, function(d) { return ((d.Revenue/d.RPM)/10); })]);
+
+          var g = yieldCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(yieldChartData)
+          .enter().append("rect")
+            .attr("class", "barYield")
+            .attr("x", function(d) { return x(d.Year); })
+            .attr("y", function(d) { return y((d.Revenue/d.RPM)/10); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y((d.Revenue/d.RPM)/10); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(yieldChartData)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.Year) + 20; }  ))
+              .attr("y", function(d) { return y((d.Revenue/d.RPM)/10) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return (((d.Revenue/d.RPM)/10)).toFixed(1); })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+
+            yieldCardSvg.append("text")
+                .attr("fill", "#000")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 5)
+                .attr("dy", "0.71em")
+                .attr("text-anchor", "end")
+                .text("Cents");
+    
+  }
+           else if (selectedCardId == 'fuel-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var fuelCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +fuelCardSvg.attr("width") - margin.left - margin.right,
+                height = +fuelCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+          x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+          y.domain([0, d3.max(dataset_stats, function(d) { return d.fuel_gallons; })]);
+
+          var g = fuelCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(dataset_stats)
+          .enter().append("rect")
+            .attr("class", "barFuel")
+            .attr("x", function(d) { return x(d.financial_year); })
+            .attr("y", function(d) { return y(d.fuel_gallons); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y(d.fuel_gallons); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(dataset_stats)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.financial_year) + 20; }  ))
+              .attr("y", function(d) { return y(d.fuel_gallons) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return ((d.fuel_gallons)/1000).toFixed(1); })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+
+            fuelCardSvg.append("text")
+              .attr("fill", "#000")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 5)
+              .attr("dy", "0.71em")
+              .attr("text-anchor", "end")
+              .text("Billions");
+  }
+
+
+ },
+          error: function(error_data){
+          console.log("error")
+          console.log(error_data)
+           }
+
+          }); 
+                   },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+
+        });
+
+  } else if (airlineSelected == 3) {
+
+                  $.ajax({
+                url: "{% url 'airline_specific_filtered_financial' %}",
+                method: 'GET',
+                data : {
+                    airline_category: 3,
+                        },
+                success: function(dataset_financial){
+
+              if (selectedCardId == 'total-rev-card') {
+
+                  d3.select(".bubble-chart").selectAll("rect").remove();
+                  d3.select(".bubble-chart").selectAll("text").remove();
+                  d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+                  d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+                  var revCardSvg = d3.select(".bubble-chart"),
+                      margin = {top: 20, right: 20, bottom: 30, left: 40},
+                      width = +revCardSvg.attr("width") - margin.left - margin.right,
+                      height = +revCardSvg.attr("height") - margin.top - margin.bottom;
+
+                  var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                      y = d3.scaleLinear().rangeRound([height, 0]);
+
+                  x.domain(dataset_financial.map(function(d) {return d.financial_year;}));
+                  y.domain([0, d3.max(dataset_financial, function(d) { return (d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); })]);
+
+                  var g = revCardSvg.append("g")
+                            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                  g.selectAll(".bar")
+                  .data(dataset_financial)
+                  .enter().append("rect")
+                    .attr("class", "barRevenue")
+                    .attr("x", function(d) { return x(d.financial_year); })
+                    .attr("y", function(d) { return y(d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); })
+                    .attr("width", x.bandwidth())
+                    .attr("height", function(d) { return height - y(d.mainline_revenue+d.regional_revenue+
+                            d.other_revenue); });
+
+                  g.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                  g.selectAll(".text")
+                    .data(dataset_financial)
+                    .enter()
+                    .append("text")
+                      .attr("class","label")
+                      .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+                      .attr("y", function(d) { return y(d.mainline_revenue+d.regional_revenue+
+                              d.other_revenue) + 5; })
+                      .attr("dy", ".75em")
+                    .text(function(d) { return "$ " + ((d.mainline_revenue+d.regional_revenue+
+                                        d.other_revenue)/1000).toFixed() + " B"; })
+                        .attr("font-family", "sans-serif")
+                        .attr("font-size", "0.8em")
+                        .attr("fill", "white");
+                 }
+                                else if (selectedCardId == 'total-costs-card') {
+                d3.select(".bubble-chart").selectAll("rect").remove();
+                d3.select(".bubble-chart").selectAll("text").remove();
+                d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+                d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+                var costsCardSvg = d3.select(".bubble-chart"),
+                    margin = {top: 20, right: 20, bottom: 30, left: 40},
+                    width = +costsCardSvg.attr("width") - margin.left - margin.right,
+                    height = +costsCardSvg.attr("height") - margin.top - margin.bottom;
+
+                var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                    y = d3.scaleLinear().rangeRound([height, 0]);
+
+                x.domain(dataset_financial.map(function(d) {return d.financial_year;}));
+                y.domain([0, d3.max(dataset_financial, function(d) {  return (-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)); })]);
+
+                var g = costsCardSvg.append("g")
+                          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                g.selectAll(".bar")
+                .data(dataset_financial)
+                .enter().append("rect")
+                  .attr("class", "barCosts")
+                  .attr("x", function(d) { return x(d.financial_year); })
+                  .attr("y", function(d) { return y(-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)); })
+                  .attr("width", x.bandwidth())
+                  .attr("height", function(d) { return height - y(-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)); });
+
+                g.append("g")
+                  .attr("class", "axis axis--x")
+                  .attr("transform", "translate(0," + height + ")")
+                  .call(d3.axisBottom(x));
+
+                g.selectAll(".text")
+                  .data(dataset_financial)
+                  .enter()
+                  .append("text")
+                    .attr("class","label")
+                    .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+                    .attr("y", function(d) { return y(-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items)) + 5; })
+                    .attr("dy", ".75em")
+                  .text(function(d) { return "$ " + ((-(d.salaries_wages+d.aircraft_fuel+
+                              d.depreciation_amortization+d.interest_expense+d.other_expenses+
+                              d.non_operating_items))/1000).toFixed() + " B"; })
+                      .attr("font-family", "sans-serif")
+                      .attr("font-size", "0.8em")
+                      .attr("fill", "white");
+               }
+
+                    $.ajax({
+                      url: "{% url 'airline_specific_filtered_stats' %}",
+                      method: 'GET',
+                      data : {
+                          airline_category: 3,
+                              },
+                      context: $(this),
+                      success: function(dataset_stats){
+
+                      if (selectedCardId == 'capacity-card') {
+
+              d3.select(".bubble-chart").selectAll("rect").remove();
+              d3.select(".bubble-chart").selectAll("text").remove();
+              d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+              d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+              var capacityCardSvg = d3.select(".bubble-chart"),
+                  margin = {top: 20, right: 20, bottom: 30, left: 40},
+                  width = +capacityCardSvg.attr("width") - margin.left - margin.right,
+                  height = +capacityCardSvg.attr("height") - margin.top - margin.bottom,
+                  g = capacityCardSvg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+              var line = d3.line()
+                            .x(function(d) { return x(d.financial_year); })
+                            .y(function(d) { return y(d.avail_seat_miles); });
+
+              x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+              y.domain([100, d3.max(dataset_stats, function(d) { return d.avail_seat_miles})]);
+                g.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g.append("g")
+                    .attr("class", "side-lineChart")
+                    .call(d3.axisLeft(y))
+                  .append("text")
+                    .attr("fill", "#000")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "0.71em")
+                    .attr("text-anchor", "end")
+                    .text("Billions");
+
+                g.append("path")
+                  .datum(dataset_stats)
+                  .attr("class", "line-lineChart")
+                  .attr("fill", "none")
+                  .attr("stroke", "#64B0CC")
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1.5)
+                  .attr("d", line);
+              
+             }             
+          else if (selectedCardId == 'traffic-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var trafficCardSvg = d3.select(".bubble-chart"),
+                  margin = {top: 20, right: 20, bottom: 30, left: 40},
+                  width = +trafficCardSvg.attr("width") - margin.left - margin.right,
+                  height = +trafficCardSvg.attr("height") - margin.top - margin.bottom,
+                  g = trafficCardSvg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+              var line = d3.line()
+                            .x(function(d) { return x(d.financial_year); })
+                            .y(function(d) { return y(d.rev_pax_miles); });
+
+              x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+              y.domain([100, d3.max(dataset_stats, function(d) { return d.rev_pax_miles})]);
+                g.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                g.append("g")
+                    .attr("class", "side-lineChart")
+                    .call(d3.axisLeft(y))
+                  .append("text")
+                    .attr("fill", "#000")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", "0.71em")
+                    .attr("text-anchor", "end")
+                    .text("Billions");
+
+                g.append("path")
+                  .datum(dataset_stats)
+                  .attr("class", "line-lineChart")
+                  .attr("fill", "none")
+                  .attr("stroke", "#E5C072")
+                  .attr("stroke-linejoin", "round")
+                  .attr("stroke-linecap", "round")
+                  .attr("stroke-width", 1.5)
+                  .attr("d", line);
+  }
+
+          else if (selectedCardId == 'load-factor-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var loadFactorCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +loadFactorCardSvg.attr("width") - margin.left - margin.right,
+                height = +loadFactorCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+          x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+          y.domain([0, d3.max(dataset_stats, function(d) { return (d.rev_pax_miles/d.avail_seat_miles); })]);
+
+          var g = loadFactorCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(dataset_stats)
+          .enter().append("rect")
+            .attr("class", "barLoadFactor")
+            .attr("x", function(d) { return x(d.financial_year); })
+            .attr("y", function(d) { return y(d.rev_pax_miles/d.avail_seat_miles); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y(d.rev_pax_miles/d.avail_seat_miles); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(dataset_stats)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.financial_year) + 15; }  ))
+              .attr("y", function(d) { return y(d.rev_pax_miles/d.avail_seat_miles) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return ((d.rev_pax_miles/d.avail_seat_miles)*100).toFixed(1) + "%"; })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+  }
+        else if (selectedCardId == 'yield-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var yieldCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +yieldCardSvg.attr("width") - margin.left - margin.right,
+                height = +yieldCardSvg.attr("height") - margin.top - margin.bottom;
+
+          var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+             y = d3.scaleLinear().rangeRound([height, 0]);
+
+          var map = new Map(dataset_stats.map(o => [o.financial_year, o]));
+                    dataset_financial.forEach(o => Object.assign(o, map.get(o.financial_year)));
+
+          var yieldChartData = dataset_financial.map(item => {
+              return {
+                  Year: item.financial_year,
+                  Revenue: item.mainline_revenue+item.regional_revenue+item.other_revenue,
+                  RPM: item.rev_pax_miles
+           }
+           })
+
+          x.domain(yieldChartData.map(function(d) { return d.Year;}));
+          y.domain([0, d3.max(yieldChartData, function(d) { return ((d.Revenue/d.RPM)/10); })]);
+
+          var g = yieldCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(yieldChartData)
+          .enter().append("rect")
+            .attr("class", "barYield")
+            .attr("x", function(d) { return x(d.Year); })
+            .attr("y", function(d) { return y((d.Revenue/d.RPM)/10); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y((d.Revenue/d.RPM)/10); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(yieldChartData)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.Year) + 20; }  ))
+              .attr("y", function(d) { return y((d.Revenue/d.RPM)/10) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return (((d.Revenue/d.RPM)/10)).toFixed(1); })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+
+            yieldCardSvg.append("text")
+                .attr("fill", "#000")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 5)
+                .attr("dy", "0.71em")
+                .attr("text-anchor", "end")
+                .text("Cents");
+    
+  }
+          else if (selectedCardId == 'fuel-card') {
+    
+          d3.select(".bubble-chart").selectAll("rect").remove();
+          d3.select(".bubble-chart").selectAll("text").remove();
+          d3.select(".bubble-chart").selectAll(".side-lineChart").remove();
+          d3.select(".bubble-chart").selectAll(".line-lineChart").remove();
+
+          var fuelCardSvg = d3.select(".bubble-chart"),
+                margin = {top: 20, right: 20, bottom: 30, left: 40},
+                width = +fuelCardSvg.attr("width") - margin.left - margin.right,
+                height = +fuelCardSvg.attr("height") - margin.top - margin.bottom;
+
+              var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+                  y = d3.scaleLinear().rangeRound([height, 0]);
+
+          x.domain(dataset_stats.map(function(d) {return d.financial_year;}));
+          y.domain([0, d3.max(dataset_stats, function(d) { return d.fuel_gallons; })]);
+
+          var g = fuelCardSvg.append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+          g.selectAll(".bar")
+          .data(dataset_stats)
+          .enter().append("rect")
+            .attr("class", "barFuel")
+            .attr("x", function(d) { return x(d.financial_year); })
+            .attr("y", function(d) { return y(d.fuel_gallons); })
+            .attr("width", x.bandwidth())
+            .attr("height", function(d) { return height - y(d.fuel_gallons); });
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x));
+
+          g.selectAll(".text")
+            .data(dataset_stats)
+            .enter()
+            .append("text")
+              .attr("class","label")
+              .attr("x", (function(d) { return x(d.financial_year) + 20; }  ))
+              .attr("y", function(d) { return y(d.fuel_gallons) + 5; })
+              .attr("dy", ".75em")
+            .text(function(d) { return ((d.fuel_gallons)/1000).toFixed(1); })
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "0.8em")
+                .attr("fill", "white");
+
+            fuelCardSvg.append("text")
+              .attr("fill", "#000")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 5)
+              .attr("dy", "0.71em")
+              .attr("text-anchor", "end")
+              .text("Billions");
+  }
+
+
+ },
+          error: function(error_data){
+          console.log("error")
+          console.log(error_data)
+           }
+
+          }); 
+
+                   },
+                error: function(error_data){
+                console.log("error")
+                console.log(error_data)
+         }
+
+        });
+
+  }
+
+ });    
+    </script>
+  
+</body>
+</html>
+
+{% endblock content %}

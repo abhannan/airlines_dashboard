@@ -9,49 +9,49 @@
     <header>
     </header>
         <div class="card-container">
-            <div class="card" id="total-rev-card">
+            <div class="card" id="total-rev-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Total Revenue</h4>
                   <hr/>
                 <p class="card-text" id="total-rev"></p>
               </div>
             </div>
-            <div class="card" id="total-costs-card">
+            <div class="card" id="total-costs-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Total Costs</h4>
                   <hr/>
                 <p class="card-text" id="total-costs"></p>
               </div>
             </div>
-            <div class="card" id="capacity-card">
+            <div class="card" id="capacity-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Capacity</h4>
                   <hr/>
                 <p class="card-text" id="total-capacity"></p>
               </div>
             </div>
-            <div class="card" id="traffic-card">
+            <div class="card" id="traffic-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Traffic</h4>
                   <hr/>
                 <p class="card-text" id="total-traffic"></p>
               </div>
             </div>
-            <div class="card" id="load-factor-card">
+            <div class="card" id="load-factor-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Load Factor</h4>
                   <hr/>
                 <p class="card-text" id="load-factor"></p>
               </div>
             </div>
-            <div class="card" id="yield-card">
+            <div class="card" id="yield-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Yield (cents)</h4>
                   <hr/>
                 <p class="card-text" id="revenue-yield"></p>
               </div>
             </div>
-            <div class="card" id="fuel-card">
+            <div class="card" id="fuel-card" data-toggle="modal" data-target="#cardsModal">
               <div class="card-body">
                 <h4 class="card-title">Fuel Gallons</h4>
                   <hr/>
@@ -72,9 +72,24 @@
             </div>
             <svg class="rasmCasm-chart" height=300 width=600></svg>
         </div>
-    <style>
     
-    </style>
+
+<!-- Modal -->
+        <div class="modal fade" id="cardsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Five Years Trend</h4>
+              </div>
+              <div class="modal-body">
+                <svg class="bubble-chart" height=250 width=450></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
     <script>
 // Default at first rendering
         $(document).ready(function() {   
@@ -275,7 +290,8 @@
         var costsForTheYear = -((yearlyFilteredData[0].salaries_wages + yearlyFilteredData[0].aircraft_fuel 
                                  + yearlyFilteredData[0].depreciation_amortization
                                  + yearlyFilteredData[0].interest_expense
-                                 + yearlyFilteredData[0].other_expenses)/1000).toFixed(1)    
+                                 + yearlyFilteredData[0].other_expenses
+                                 +yearlyFilteredData[0].non_operating_items)/1000).toFixed(1)    
         var totalCosts = $('#total-costs').html("$ "+ costsForTheYear + " Billion");                            
                     
                     
@@ -350,6 +366,14 @@ var rasmCasmData = dataset_financial.map(item => {
 
     var keys = ["RASM", "CASM"];
 
+    var tooltip = d3.selectAll("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("padding", "0 10px")
+                .style("background", "#0C5A81")
+                .style("color", "white")
+
     x0.domain(rasmCasmData.map(function(d){
         return d.Year;
     }));
@@ -388,7 +412,20 @@ var rasmCasmData = dataset_financial.map(item => {
             })
             .attr("width", x1.bandwidth())
             .attr("height", function(d) { return chartHeight - y0(d.value); })
-            .attr("fill", function(d) { return z(d.key); });
+            .attr("fill", function(d) { return z(d.key); })
+            .on("mouseover", function (d){
+                tooltip.transition().duration(200)
+                    .style("opacity", .8);
+                tooltip.html(d.value)
+                    .style("left", (d3.event.pageX - 35) + "px")
+                    .style("top", (d3.event.pageY - 30) + "px")
+            })
+            .on("mouseout", function(d) {
+               tooltip.transition()
+                 .duration(500)
+                 .style("opacity", 0);
+               });
+
             
     g.append("g")
       .attr("class", "axis")
@@ -406,6 +443,7 @@ var rasmCasmData = dataset_financial.map(item => {
             .attr("font-weight", "bold")
             .attr("text-anchor", "start")
             .text("US cents");
+
     var legend = g.append("g")
           .attr("font-family", "sans-serif")
           .attr("font-size", 10)
@@ -415,17 +453,17 @@ var rasmCasmData = dataset_financial.map(item => {
         .enter().append("g")
           .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
   
-    legend.append("rect")
-      .attr("x", chartWidth - 19)
-      .attr("width", 19)
-      .attr("height", 19)
-      .attr("fill", z);
+        legend.append("rect")
+          .attr("x", chartWidth - 19)
+          .attr("width", 19)
+          .attr("height", 19)
+          .attr("fill", z);
 
-    legend.append("text")
-      .attr("x", chartWidth - 24)
-      .attr("y", 9.5)
-      .attr("dy", "0.32em")
-      .text(function(d) { return d; });
+        legend.append("text")
+          .attr("x", chartWidth - 24)
+          .attr("y", 9.5)
+          .attr("dy", "0.32em")
+          .text(function(d) { return d; });
 
 
                 },
@@ -433,7 +471,8 @@ var rasmCasmData = dataset_financial.map(item => {
                 console.log("error")
                 console.log(error_data)
          }
-            })                             
+            })     
+                        
   // Completes Ajax Request for Stats          
 
                 },
@@ -572,7 +611,8 @@ var rasmCasmData = dataset_financial.map(item => {
         var costsForTheYear = -((yearlyFilteredData[0].salaries_wages + yearlyFilteredData[0].aircraft_fuel 
                                  + yearlyFilteredData[0].depreciation_amortization
                                  + yearlyFilteredData[0].interest_expense
-                                 + yearlyFilteredData[0].other_expenses)/1000).toFixed(1)    
+                                 + yearlyFilteredData[0].other_expenses
+                                 +yearlyFilteredData[0].non_operating_items)/1000).toFixed(1)    
         var totalCosts = $('#total-costs').html("$ "+ costsForTheYear + " Billion"); 
                 
 
@@ -687,7 +727,10 @@ dataset_financial.forEach(o => Object.assign(o, map.get(o.financial_year)));
             })
             })
            </script>
-  
+
+        {% include 'dashboard/cards_update.html' %}
+
+
 </body>
 </html>
 
